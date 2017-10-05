@@ -84,10 +84,12 @@ class VPPMechanismDriver(api.MechanismDriver):
     vif_details = {}
 
     def initialize(self):
+        LOG.debug("initialize")
         cfg.CONF.register_opts(config_opts.vpp_opts, "ml2_vpp")
         self.communicator = EtcdAgentCommunicator(self.port_bind_complete)
 
     def get_vif_type(self, port_context):
+        LOG.debug("get_vif_type")
         """Determine the type of the vif to be bound from port context"""
 
         # Default vif type
@@ -105,6 +107,7 @@ class VPPMechanismDriver(api.MechanismDriver):
         return vif_type
 
     def bind_port(self, port_context):
+        LOG.debug("bind_port")
         """Attempt to bind a port.
 
         :param port_context: PortContext instance describing the port
@@ -175,6 +178,7 @@ class VPPMechanismDriver(api.MechanismDriver):
                 return
 
     def check_segment(self, segment, host):
+        LOG.debug("check_segment")
         """Check if segment can be bound.
 
         :param segment: segment dictionary describing segment to bind
@@ -217,9 +221,11 @@ class VPPMechanismDriver(api.MechanismDriver):
         return True
 
     def physnet_known(self, host, physnet):
+        LOG.debug("physnet_known")
         return self.communicator.find_physnet(host, physnet)
 
     def check_vlan_transparency(self, port_context):
+        LOG.debug("check_vlan_transparency")
         """Check if the network supports vlan transparency.
 
         :param port_context: NetworkContext instance describing the network.
@@ -229,6 +235,7 @@ class VPPMechanismDriver(api.MechanismDriver):
         return False
 
     def update_port_precommit(self, port_context):
+        LOG.debug("update_port_precommit")
         """Work to do, during DB commit, when updating a port
 
         If we are partially responsible for binding this port, we will
@@ -289,6 +296,7 @@ class VPPMechanismDriver(api.MechanismDriver):
                 self._insert_provisioning_block(port_context)
 
     def port_bind_complete(self, port_id, host):
+        LOG.debug("port_bind_complete")
         """Tell things that the port is truly bound.
 
         This is a callback called by the etcd communicator.
@@ -298,6 +306,7 @@ class VPPMechanismDriver(api.MechanismDriver):
         self._release_provisioning_block(host, port_id)
 
     def _insert_provisioning_block(self, context):
+        LOG.debug("_insert_provisioning_block")
         if provisioning_blocks is None:
             # Functionality not available in this version of Neutron
             return
@@ -314,6 +323,7 @@ class VPPMechanismDriver(api.MechanismDriver):
             provisioning_blocks.L2_AGENT_ENTITY)
 
     def _release_provisioning_block(self, host, port_id):
+        LOG.debug("_release_provisioning_block")
         context = n_context.get_admin_context()
 
         if provisioning_blocks is None:
@@ -328,6 +338,7 @@ class VPPMechanismDriver(api.MechanismDriver):
                 provisioning_blocks.L2_AGENT_ENTITY)
 
     def update_port_postcommit(self, port_context):
+        LOG.debug("update_port_postcommit")
         """Work to do, post-DB commit, when updating a port
 
         After accepting an update_port, determine if we logged any
@@ -357,6 +368,7 @@ class VPPMechanismDriver(api.MechanismDriver):
                 self.communicator.kick()
 
     def delete_port_precommit(self, port_context):
+        LOG.debug("delete_port_precommit")
         port = port_context.current
         host = port_context.host
         # NB: Host is typically '' if the port is not bound
@@ -365,6 +377,7 @@ class VPPMechanismDriver(api.MechanismDriver):
                                      port, host)
 
     def delete_port_postcommit(self, port_context):
+        LOG.debug("delete_port_postcommit")
         self.communicator.kick()
 
 
@@ -429,6 +442,7 @@ class EtcdAgentCommunicator(AgentCommunicator):
     """
 
     def __init__(self, notify_bound):
+        LOG.debug("etcd agent communicator __init__")
         super(EtcdAgentCommunicator, self).__init__()
         LOG.debug("Using etcd host:%s port:%s user:%s",
                   cfg.CONF.ml2_vpp.etcd_host,
@@ -496,11 +510,13 @@ class EtcdAgentCommunicator(AgentCommunicator):
         registry.subscribe(self.start_threads, resources.PROCESS, ev)
 
     def start_threads(self, resource, event, trigger):
+        LOG.debug("start_threads")
         LOG.debug('Starting background threads for Neutron worker')
         self.return_thread = self.make_return_worker()
         self.forward_thread = self.make_forward_worker()
 
     def find_physnet(self, host, physnet):
+        LOG.debug("find_physnet")
         """Identify if an agent can connect to the physical network
 
         This can fail if the agent hasn't been configured for that
@@ -519,6 +535,7 @@ class EtcdAgentCommunicator(AgentCommunicator):
         return True
 
     def register_secgroup_event_handler(self):
+        LOG.debug("register_secgroup_event_handler")
         """Subscribe a handler to process secgroup change notifications
 
         We're interested in PRECOMMIT_xxx (where we store the changes
@@ -572,6 +589,7 @@ class EtcdAgentCommunicator(AgentCommunicator):
                                events.BEFORE_DELETE)
 
     def process_secgroup_after(self, resource, event, trigger, **kwargs):
+        LOG.debug("process_secgroup_after")
         """Callback for handling security group/rule commit-complete events
 
         This is when we should tell other things that a change has
@@ -595,6 +613,7 @@ class EtcdAgentCommunicator(AgentCommunicator):
         self.kick()
 
     def process_secgroup_commit(self, resource, event, trigger, **kwargs):
+        LOG.debug("process_secgroup_commit")
         """Callback for handling security group/rule  commit events
 
         This is the time at which we should be committing any of our
@@ -684,6 +703,7 @@ class EtcdAgentCommunicator(AgentCommunicator):
                                  deleted_rules=deleted_rules)
 
     def send_sg_updates(self, context, sgids, deleted_rules=None):
+        LOG.debug("send_sg_updates")
         """Called when security group rules are updated
 
         Arguments:
@@ -717,12 +737,14 @@ class EtcdAgentCommunicator(AgentCommunicator):
                 self.send_secgroup_to_agents(context.session, secgroup)
 
     def get_secgroup_rule(self, rule_id, context):
+        LOG.debug("get_secgroup_rule")
         """Fetch and return a security group rule from Neutron DB"""
         plugin = directory.get_plugin()
         with context.session.begin(subtransactions=True):
             return plugin.get_security_group_rule(context, rule_id)
 
     def get_secgroup_from_rules(self, sgid, rules):
+        LOG.debug("get_secgroup_from_rules")
         """Build and return a security group namedtuple object.
 
         This object is the format with which we exchange data with
@@ -751,6 +773,7 @@ class EtcdAgentCommunicator(AgentCommunicator):
         return SecurityGroup(sgid, ingress_rules, egress_rules)
 
     def _neutron_rule_to_vpp_acl(self, rule):
+        LOG.debug("_neutron_rule_to_vpp_acl")
         """Convert a neutron rule to vpp_acl rule.
 
         Arguments:
@@ -832,6 +855,7 @@ class EtcdAgentCommunicator(AgentCommunicator):
         return sg_rule
 
     def send_secgroup_to_agents(self, session, secgroup):
+        LOG.debug("send_secgroup_to_agents")
         """Writes a secgroup to the etcd secgroup space
 
         Does this via the journal as part of the commit, so
@@ -856,6 +880,7 @@ class EtcdAgentCommunicator(AgentCommunicator):
         db.journal_write(session, secgroup_path, sg)
 
     def delete_secgroup_from_etcd(self, session, secgroup_id):
+        LOG.debug("delete_secgroup_from_etcd")
         """Deletes the secgroup key from etcd
 
         Arguments:
@@ -865,14 +890,17 @@ class EtcdAgentCommunicator(AgentCommunicator):
         db.journal_write(session, secgroup_path, None)
 
     def _secgroup_path(self, secgroup_id):
+        LOG.debug("_secgroup_path")
         return self.secgroup_key_space + "/" + secgroup_id
 
     def _port_path(self, host, port):
+        LOG.debug("_port_path")
         return self.port_key_space + "/" + host + "/ports/" + port['id']
 
     # TODO(najoy): Move all security groups related code to a dedicated
     # module
     def _remote_group_path(self, secgroup_id, port_id):
+        LOG.debug("_remote_group_path")
         return self.remote_group_key_space + "/" + secgroup_id + "/" + port_id
 
     # A remote_group_path is qualified with a port ID because the agent uses
@@ -886,6 +914,7 @@ class EtcdAgentCommunicator(AgentCommunicator):
     # product using all the IP addresses of the ports in the remote_group
     # and the remaining attributes of the rule.
     def _remote_group_paths(self, port):
+        LOG.debug("_remote_group_paths")
         security_groups = port.get('security_groups', [])
         return [self._remote_group_path(secgroup_id, port['id'])
                 for secgroup_id in security_groups]
@@ -897,6 +926,7 @@ class EtcdAgentCommunicator(AgentCommunicator):
     # transaction).
 
     def kick(self):
+        LOG.debug("kick")
         # A thread in one Neutron process - possibly not this one -
         # is waiting to send updates from the DB to etcd.  Wake it.
         try:
@@ -910,6 +940,7 @@ class EtcdAgentCommunicator(AgentCommunicator):
             pass
 
     def bind(self, session, port, segment, host, binding_type):
+        LOG.debug("bind")
         # NB segmentation_id is not optional in the wireline protocol,
         # we just pass 0 for unsegmented network types
         data = {
@@ -928,8 +959,9 @@ class EtcdAgentCommunicator(AgentCommunicator):
                   "segment:%s, host:%s, type:%s",
                   port, data['segmentation_id'],
                   host, data['binding_type'])
-
+        LOG.debug("pre journal_write")
         db.journal_write(session, self._port_path(host, port), data)
+        LOG.debug("finished db.journal_write")
         # For tracking ports in a remote_group, create a journal entry in
         # the remote-group key-space.
         # This will result in the creation of an etcd key with the port ID
@@ -941,9 +973,12 @@ class EtcdAgentCommunicator(AgentCommunicator):
             db.journal_write(session, remote_group_path,
                              [item['ip_address'] for item in
                               data['fixed_ips']])
+        LOG.debug("pre-kick")
         self.kick()
+        LOG.debug("post-kick")
 
     def unbind(self, session, port, host):
+        LOG.debug("unbind")
         LOG.debug("Queueing unbind request for port:%s, host:%s.",
                   port, host)
         # When a port is unbound, this journal entry will delete the
@@ -967,6 +1002,7 @@ class EtcdAgentCommunicator(AgentCommunicator):
 
     def unbind_port_from_remote_groups(self, session, original_port,
                                        current_port):
+        LOG.debug("unbind_port_from_remote_groups")
         """Remove ports from remote groups when port security is updated."""
         removed_sec_groups = set(original_port['security_groups']) - set(
             current_port['security_groups'])
@@ -982,22 +1018,31 @@ class EtcdAgentCommunicator(AgentCommunicator):
     # updates etcd.
 
     def make_forward_worker(self):
+        LOG.debug("make_forward_worker")
         # Assign a UUID to each worker thread to enable thread election
         return eventlet.spawn(self._forward_worker)
 
     def do_etcd_update(self, etcd_client, k, v):
+        LOG.debug("do_etcd_update")
         with eventlet.Timeout(cfg.CONF.ml2_vpp.etcd_write_time, False):
+            LOG.debug("1")
             if v is None:
+                LOG.debug("2")
                 try:
                     etcd_client.delete(k)
+                    LOG.debug("3")
                 except etcd.EtcdKeyNotFound:
+                    LOG.debug("4")
                     # The key may have already been deleted
                     # no problem here
                     pass
             else:
+                LOG.debug("5")
                 etcd_client.write(k, jsonutils.dumps(v))
+                LOG.debug("6")
 
     def _forward_worker(self):
+        LOG.debug("_forward_worker")
         LOG.debug('forward worker begun')
         etcd_client = self.client_factory.client()
         lease_time = cfg.CONF.ml2_vpp.forward_worker_master_lease_time
@@ -1024,10 +1069,14 @@ class EtcdAgentCommunicator(AgentCommunicator):
 
                 # We will try to empty the pending rows in the DB
                 while True:
+                    LOG.debug("extend_election in foward_worker")
                     etcd_election.extend_election(
                         cfg.CONF.ml2_vpp.db_query_time)
+                    LOG.debug("session in forward_worker")
                     session = neutron_db_api.get_session()
+                    LOG.debug("maybe_more in forward_worker")
                     maybe_more = db.journal_read(session, work)
+                    LOG.debug("if not maybe_more")
                     if not maybe_more:
                         LOG.debug('forward worker has emptied journal')
                         etcd_election.extend_election(lease_time)
@@ -1063,6 +1112,7 @@ class EtcdAgentCommunicator(AgentCommunicator):
     ######################################################################
 
     def make_return_worker(self):
+        LOG.debug("make_return_worker")
         """The thread that manages data returned from agents via etcd."""
 
         # TODO(ijw): agents and physnets should be checked before a bind

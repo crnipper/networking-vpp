@@ -30,7 +30,7 @@ LOG.setLevel(logging.ERROR)
 VPP_CMD_QUEUE_LEN = 32
 vpp = vpp.VPPInterface(LOG, None)
 
-etcd_client = etcd.Client(port=2379)
+etcd_client = etcd.Client(host='11.191.31.2', port=2379)
 
 # This tests one host.  Give it the host you're running on as an argument
 binding_host = sys.argv[1]

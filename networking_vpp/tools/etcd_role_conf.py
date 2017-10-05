@@ -103,7 +103,7 @@ def exec_etcdctl(*command, **argv):
 
 
 @click.group()
-@click.option('--endpoint', default="127.0.0.1:2379",
+@click.option('--endpoint', default="11.191.31.2:2379",
               help='Endpoint of the management interface of etcd (host:port)')
 @click.option('--ca', default=None, help='CA file path if TLS is enabled')
 def etcdctl(endpoint, ca):

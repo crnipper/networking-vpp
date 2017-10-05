@@ -20,11 +20,16 @@ import re
 from openstack import connection
 from oslo_serialization import jsonutils
 
+auth_args = {
+    'auth_url': 'http://11.191.31.10:35357/v3',
+    'project_name': 'admin',
+    'username': 'admin',
+    'password': 'password',
+}
 
-conn = connection.from_config()
+conn = connection.Connection(**auth_args)
 
-etcd_client = etcd.Client(port=2379)
-
+etcd_client = etcd.Client(host='11.191.31.2', port=2379)
 
 port_paths = set()
 

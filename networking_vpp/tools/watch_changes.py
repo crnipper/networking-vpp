@@ -36,7 +36,7 @@ def dump_result(w):
 
 
 def main():
-    c = etcd.Client(host='localhost', port=2379)
+    c = etcd.Client(host='11.191.31.2', port=2379)
 
     tick = 0
     while True:

@@ -2116,6 +2116,7 @@ class EtcdListener(object):
                                                  network_type,
                                                  segmentation_id)
         if props is None:
+            LOG.debug("Problems with the binding, props is None.")
             # Problems with the binding
             # We will never notify anyone this port is ready.
             return None
