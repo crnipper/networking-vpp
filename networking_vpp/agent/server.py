@@ -2078,7 +2078,7 @@ class EtcdListener(object):
         # connection: this tells us there's a state change, and there is
         # a state detection function on self.vppf.
         self.vppf.vhost_ready_callback = self._vhost_ready
-
+        LOG.debug("EtcdListener vhostuser interface has seen socket connection")
     def unbind(self, id):
         self.vppf.unbind_interface_on_host(id)
 
@@ -2102,6 +2102,7 @@ class EtcdListener(object):
         # For GPE, fetch remote mappings from etcd for any "new" network
         # segments we will be binding to so we are aware of all the remote
         # overlay (mac) to underlay (IP) values
+        LOG.debug("EtcdListener bind call")
         if network_type == 'vxlan':
             # For vxlan-gpe, a physnet value is not messaged by ML2 as it
             # is not specified for creating a gpe tenant network. Hence for
@@ -2660,6 +2661,7 @@ class PortWatcher(etcdutils.EtcdChangeWatcher):
             pass
 
     def added(self, port, value):
+        LOG.debug("portwatcher added method")
         # Create or update == bind
 
         # In EtcdListener, bind *ensures correct
@@ -2669,6 +2671,7 @@ class PortWatcher(etcdutils.EtcdChangeWatcher):
         # an update.
 
         data = jsonutils.loads(value)
+        LOG.debug("added method binding...")
         self.data.bind(
             self.data.binder.add_notification,
             port,
@@ -2679,6 +2682,7 @@ class PortWatcher(etcdutils.EtcdChangeWatcher):
             data['segmentation_id'],
             data  # TODO(ijw) convert incoming to security fmt
             )
+        LOG.debug("added method bind finished")
         # While the bind might fail for one reason or another,
         # we have nothing we can do at this point.  We simply
         # decline to notify Nova the port is ready.
@@ -2926,8 +2930,10 @@ class BindNotifier(object):
         self.state_key_space = state_key_space
 
         self.etcd_client = client_factory.client()
+        LOG.debug("BindNotifier created")
 
     def add_notification(self, id, content):
+        LOG.debug("bindnotifier add_notification")
         """Queue a notification for sending to Nova
 
         Nova watches a key's existence before sending out bind events.
@@ -2937,17 +2943,20 @@ class BindNotifier(object):
         """
 
         self.notifications.put((id, content,))
+        LOG.debug("notification put")
 
     def run(self):
+        LOG.debug("bindnotifier run")
         while(True):
             try:
                 ent = self.notifications.get()
 
                 (port, props) = ent
-
+                LOG.debug("bindnotifier run - etcd writing")
                 self.etcd_client.write(
                     self.state_key_space + '/%s' % port,
                     jsonutils.dumps(props))
+                LOG.debug("bindnotifier run - etcd writing complete")
             except Exception:
                 # We must keep running, but we don't expect problems
                 LOG.exception("exception in bind-notify thread")
@@ -3022,9 +3031,9 @@ def main():
               cfg.CONF.ml2_vpp.etcd_user)
 
     client_factory = etcdutils.EtcdClientFactory(cfg.CONF.ml2_vpp)
-
+    LOG.debug("server.py client_factory created")
     ops = EtcdListener(cfg.CONF.host, client_factory, vppf, physnets)
-
+    LOG.debug("server.py ops created")
     ops.process_ops()
 
 if __name__ == '__main__':

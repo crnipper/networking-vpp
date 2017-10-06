@@ -169,6 +169,7 @@ class VPPMechanismDriver(api.MechanismDriver):
                     vif_details['vhostuser_socket'] = \
                         os.path.join(cfg.CONF.ml2_vpp.vhost_user_dir,
                                      port_context.current['id'])
+                    LOG.debug("vhostuser socket: %s" % vif_details['vhostuser_socket'])
                     vif_details['vhostuser_mode'] = 'server'
                 LOG.debug('Setting details: %s', vif_details)
                 port_context.set_binding(segment[api.ID],
@@ -282,7 +283,7 @@ class VPPMechanismDriver(api.MechanismDriver):
                     port_context._plugin_context.session,
                     port_context.original,
                     port_context.current)
-
+                LOG.debug("calling communicator bind")
                 self.communicator.bind(port_context._plugin_context.session,
                                        port_context.current,
                                        current_bind[api.BOUND_SEGMENT],
@@ -293,6 +294,7 @@ class VPPMechanismDriver(api.MechanismDriver):
                 # host, but we're oddly seeing that the orig_host is
                 # always set.  Should confirm if this is a problem or
                 # not.
+                LOG.debug("inserting provisioning block")
                 self._insert_provisioning_block(port_context)
 
     def port_bind_complete(self, port_id, host):
@@ -308,6 +310,7 @@ class VPPMechanismDriver(api.MechanismDriver):
     def _insert_provisioning_block(self, context):
         LOG.debug("_insert_provisioning_block")
         if provisioning_blocks is None:
+            LOG.debug("provisioning_blocks not available in this version of Neutron")
             # Functionality not available in this version of Neutron
             return
 
@@ -926,7 +929,7 @@ class EtcdAgentCommunicator(AgentCommunicator):
     # transaction).
 
     def kick(self):
-        LOG.debug("kick")
+        LOG.debug("etcd agent communicator kick")
         # A thread in one Neutron process - possibly not this one -
         # is waiting to send updates from the DB to etcd.  Wake it.
         try:
@@ -940,7 +943,7 @@ class EtcdAgentCommunicator(AgentCommunicator):
             pass
 
     def bind(self, session, port, segment, host, binding_type):
-        LOG.debug("bind")
+        LOG.debug("etcd agent communicator bind")
         # NB segmentation_id is not optional in the wireline protocol,
         # we just pass 0 for unsegmented network types
         data = {
@@ -1136,6 +1139,7 @@ class EtcdAgentCommunicator(AgentCommunicator):
             # useful effect of resending all Nova notifications
             # for 'port bound' events based on existing state.
             def added(self, key, value):
+                LOG.debug("make_return_worker added")
                 # Matches a port key, gets host and uuid
                 m = re.match('^([^/]+)/ports/([^/]+)$', key)
 
@@ -1144,6 +1148,7 @@ class EtcdAgentCommunicator(AgentCommunicator):
                     port = m.group(2)
 
                     self.data.notify_bound(port, host)
+                    LOG.debug("notify_bound finished")
                 else:
                     # Matches an agent, gets a liveness notification
                     m = re.match(self.data.state_key_space + '^([^/]+)/alive$',
